@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: bird-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      TZ: Asia/Shanghai
+    ports:
+      - "33061:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./backend/db/springboot05qmpxx3.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./backend/db/seed-data.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: bird-backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Shanghai
+      # 数据库连接（覆盖 jar 内 yml）
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/springboot05qmpxx3?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true"
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: "123456"
+      # AI 识别（可选）：AI 体积大不打包进镜像，挂载宿主 ai/ 目录
+      BIRD_PYTHON: /ai/python/python.exe
+      BIRD_AI_DIR: /ai
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./upload:/app/upload
+      # 可选：开启 AI 识别时取消注释（需先准备 ai/python 为 Linux 版，见 README「Docker 说明」）
+      # - ./ai:/ai:ro
+
+volumes:
+  mysql-data:

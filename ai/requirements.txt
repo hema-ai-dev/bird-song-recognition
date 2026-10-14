@@ -1,0 +1,8 @@
+# 推理 + 训练共用依赖（版本为实测通过组合；torch 请按官网选择 cuda 版本）
+torch
+torchvision
+efficientnet_pytorch==0.7.1
+librosa
+pydub==0.25.1
+Pillow
+tqdm

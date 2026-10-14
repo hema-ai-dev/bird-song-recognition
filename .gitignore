@@ -1,0 +1,25 @@
+# 编译产物
+backend/target/
+frontend-admin/dist/
+frontend-web/h5/
+*.class
+*.map
+# 依赖
+node_modules/
+# 模型权重（放 Releases）
+ai/models/
+ai/python/
+ai/ffmpeg/
+# 运行时
+ai/test_img/
+ai/test_voice/
+ai/training/models/
+ai/training/train_split_data_15_5s/
+ai/training/train_split_img_new_5s/
+__pycache__/
+upload/
+*.log
+# IDE
+.idea/
+*.iml
+.vscode/
