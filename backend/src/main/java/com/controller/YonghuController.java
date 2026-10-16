@@ -37,6 +37,7 @@ import com.entity.view.YonghuView;
 import com.service.YonghuService;
 import com.service.TokenService;
 import com.utils.PageUtils;
+import com.utils.PasswordUtil;
 import com.utils.R;
 import com.utils.MPUtil;
 import com.utils.MapUtils;
@@ -74,9 +75,14 @@ public class YonghuController {
 		// 根据登录查询用户信息
         YonghuEntity u = yonghuService.selectOne(new EntityWrapper<YonghuEntity>().eq("zhanghao", username));
         // 当用户不存在或验证密码不通过时
-		if(u==null || !u.getMima().equals(password)) {
+		if(u==null || !PasswordUtil.matches(password, u.getMima())) {
             //账号或密码不正确提示
 			return R.error("账号或密码不正确");
+		}
+		// 旧明文密码验证通过后自动升级为哈希存储
+		if(!PasswordUtil.isHashed(u.getMima())) {
+			u.setMima(PasswordUtil.hash(password));
+			yonghuService.updateById(u);
 		}
 		
         // 获取登录token
@@ -88,7 +94,7 @@ public class YonghuController {
 
 	
 	/**
-     * 注册
+     * 注册：密码哈希存储
      */
 	@IgnoreAuth
     @RequestMapping("/register")
@@ -103,6 +109,10 @@ public class YonghuController {
         if(yonghuService.selectCount(new EntityWrapper<YonghuEntity>().eq("zhanghao", yonghu.getZhanghao()))>0) {
             return R.error("账号已存在");
         }
+		if(yonghu.getMima()==null || yonghu.getMima().isEmpty()) {
+			return R.error("密码不能为空");
+		}
+		yonghu.setMima(PasswordUtil.hash(yonghu.getMima()));
 		Long uId = new Date().getTime();
 		yonghu.setId(uId);
         //保存用户
@@ -131,20 +141,25 @@ public class YonghuController {
     }
     
     /**
-     * 密码重置
+     * 密码重置：仅管理员可调用（拦截器已要求登录），重置为随机密码
      */
-    @IgnoreAuth
 	@RequestMapping(value = "/resetPass")
     public R resetPass(String username, HttpServletRequest request){
+		// 仅管理员角色允许重置
+		Object role = request.getSession().getAttribute("role");
+		if(role==null || !"管理员".equals(role.toString())) {
+			return R.error(403, "无权限操作");
+		}
     	//根据登录账号判断是否存在用户信息，否则返回错误信息
         YonghuEntity u = yonghuService.selectOne(new EntityWrapper<YonghuEntity>().eq("zhanghao", username));
     	if(u==null) {
     		return R.error("账号不存在");
     	}
-        //重置密码为123456
-        u.setMima("123456");
+        //重置为随机密码
+        String newPassword = PasswordUtil.randomPassword();
+        u.setMima(PasswordUtil.hash(newPassword));
         yonghuService.updateById(u);
-        return R.ok("密码已重置为：123456");
+        return R.ok("密码已重置为：" + newPassword);
     }
 
 
@@ -253,6 +268,9 @@ public class YonghuController {
         }
     	yonghu.setId(new Date().getTime()+new Double(Math.floor(Math.random()*1000)).longValue());
 		yonghu.setId(new Date().getTime());
+		if(yonghu.getMima()!=null && !yonghu.getMima().isEmpty()) {
+			yonghu.setMima(PasswordUtil.hash(yonghu.getMima()));
+		}
         yonghuService.insert(yonghu);
         return R.ok().put("data",yonghu.getId());
     }
@@ -274,6 +292,9 @@ public class YonghuController {
         }
     	yonghu.setId(new Date().getTime()+new Double(Math.floor(Math.random()*1000)).longValue());
 		yonghu.setId(new Date().getTime());
+		if(yonghu.getMima()!=null && !yonghu.getMima().isEmpty()) {
+			yonghu.setMima(PasswordUtil.hash(yonghu.getMima()));
+		}
         yonghuService.insert(yonghu);
         return R.ok().put("data",yonghu.getId());
     }
@@ -292,6 +313,10 @@ public class YonghuController {
         //验证字段唯一性，否则返回错误信息
         if(yonghuService.selectCount(new EntityWrapper<YonghuEntity>().ne("id", yonghu.getId()).eq("zhanghao", yonghu.getZhanghao()))>0) {
             return R.error("账号已存在");
+        }
+        //密码字段：传入明文则哈希；已哈希/为空保持不变
+        if(yonghu.getMima()!=null && !yonghu.getMima().isEmpty() && !PasswordUtil.isHashed(yonghu.getMima())) {
+            yonghu.setMima(PasswordUtil.hash(yonghu.getMima()));
         }
         //全部更新
         yonghuService.updateById(yonghu);

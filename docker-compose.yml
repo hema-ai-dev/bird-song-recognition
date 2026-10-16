@@ -5,10 +5,12 @@ services:
     image: mysql:5.7
     container_name: bird-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: "123456"
+      # 密码通过环境变量传入，避免在 compose 文件硬编码
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-bird123456}"
       TZ: Asia/Shanghai
     ports:
-      - "33061:3306"
+      # 仅绑定本机回环地址，数据库不暴露到公网
+      - "127.0.0.1:33061:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./backend/db/springboot05qmpxx3.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
@@ -17,7 +19,7 @@ services:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p123456"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-bird123456}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -34,7 +36,7 @@ services:
       # 数据库连接（覆盖 jar 内 yml）
       SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/springboot05qmpxx3?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true"
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: "123456"
+      SPRING_DATASOURCE_PASSWORD: "${MYSQL_ROOT_PASSWORD:-bird123456}"
       # AI 识别（可选）：AI 体积大不打包进镜像，挂载宿主 ai/ 目录
       BIRD_PYTHON: /ai/python/python.exe
       BIRD_AI_DIR: /ai

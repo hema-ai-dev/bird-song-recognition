@@ -52,6 +52,10 @@ public class FileController{
 			throw new EIException("上传文件不能为空");
 		}
 		String fileExt = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf(".")+1);
+		// 扩展名白名单校验，防止上传可执行文件
+		if (!fileExt.matches("[A-Za-z0-9]{1,10}")) {
+			throw new EIException("非法文件类型");
+		}
 		// 上传目录统一为 {user.dir}/upload，jar与源码模式一致，并由yml的 file:upload/ 映射对外访问
 		File upload = new File(System.getProperty("user.dir") + File.separator + "upload");
 		if(!upload.exists()) {
@@ -59,6 +63,10 @@ public class FileController{
 		}
 		String fileName = new Date().getTime()+"."+fileExt;
         if(StringUtils.isNotBlank(type) && type.contains("_template")) {
+            // 防路径注入：type 仅允许字母数字下划线
+            if (!type.matches("[A-Za-z0-9_]+")) {
+                throw new EIException("非法文件类型");
+            }
             fileName = type + "."+fileExt;
             new File(upload.getAbsolutePath()+"/"+fileName).deleteOnExit();
         }
@@ -91,16 +99,13 @@ public class FileController{
 	@RequestMapping("/download")
 	public ResponseEntity<byte[]> download(@RequestParam String fileName) {
 		try {
-			File path = new File(ResourceUtils.getURL("classpath:static").getPath());
-			if(!path.exists()) {
-			    path = new File("");
+			// 路径穿越防护：文件名必须为纯文件名
+			if (fileName == null || !fileName.matches("[A-Za-z0-9._\\-]{1,255}")) {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
 			}
-			File upload = new File(path.getAbsolutePath(),"/upload/");
-			if(!upload.exists()) {
-			    upload.mkdirs();
-			}
-			File file = new File(upload.getAbsolutePath()+"/"+fileName);
-			if(file.exists()){
+			File upload = new File(System.getProperty("user.dir") + File.separator + "upload");
+			File file = new File(upload, fileName);
+			if(file.exists() && file.getCanonicalPath().startsWith(upload.getCanonicalPath() + File.separator)){
 				/*if(!fileService.canRead(file, SessionManager.getSessionUser())){
 					getResponse().sendError(403);
 				}*/

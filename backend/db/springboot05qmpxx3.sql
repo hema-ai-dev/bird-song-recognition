@@ -357,7 +357,8 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'admin','admin','upload/image1.jpg','管理员','2025-02-16 04:24:15');
+-- 密码存储格式 {salt}:{sha256(salt+password)}；admin 账号初始密码为 admin（首次登录后请修改）
+INSERT INTO `users` VALUES (1,'admin','birdrecognition0:3e420d164b39ca6bbb9f9deb5459447a24c2a051fec6710a85325f355856feb8','upload/image1.jpg','管理员','2025-02-16 04:24:15');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -388,7 +389,8 @@ CREATE TABLE `yonghu` (
 
 LOCK TABLES `yonghu` WRITE;
 /*!40000 ALTER TABLE `yonghu` DISABLE KEYS */;
-INSERT INTO `yonghu` VALUES (11,'2025-02-16 04:24:15','账号1','123456','姓名1','男','13823888881','upload/yonghu_touxiang1.jpg'),(12,'2025-02-16 04:24:15','账号2','123456','姓名2','男','13823888882','upload/yonghu_touxiang2.jpg'),(13,'2025-02-16 04:24:15','账号3','123456','姓名3','男','13823888883','upload/yonghu_touxiang3.jpg'),(14,'2025-02-16 04:24:15','账号4','123456','姓名4','男','13823888884','upload/yonghu_touxiang4.jpg'),(15,'2025-02-16 04:24:15','账号5','123456','姓名5','男','13823888885','upload/yonghu_touxiang5.jpg'),(16,'2025-02-16 04:24:15','账号6','123456','姓名6','男','13823888886','upload/yonghu_touxiang6.jpg'),(17,'2025-02-16 04:24:15','账号7','123456','姓名7','男','13823888887','upload/yonghu_touxiang7.jpg'),(18,'2025-02-16 04:24:15','账号8','123456','姓名8','男','13823888888','upload/yonghu_touxiang8.jpg');
+-- 演示账号密码为 123456（哈希存储）
+INSERT INTO `yonghu` VALUES (11,'2025-02-16 04:24:15','账号1','birdrecognition0:be266752de94f68f9940993591d3f2388b47c882dd6220593f2e27d6bb3046f0','姓名1','男','13823888881','upload/yonghu_touxiang1.jpg'),(12,'2025-02-16 04:24:15','账号2','birdrecognition0:be266752de94f68f9940993591d3f2388b47c882dd6220593f2e27d6bb3046f0','姓名2','男','13823888882','upload/yonghu_touxiang2.jpg'),(13,'2025-02-16 04:24:15','账号3','birdrecognition0:be266752de94f68f9940993591d3f2388b47c882dd6220593f2e27d6bb3046f0','姓名3','男','13823888883','upload/yonghu_touxiang3.jpg'),(14,'2025-02-16 04:24:15','账号4','birdrecognition0:be266752de94f68f9940993591d3f2388b47c882dd6220593f2e27d6bb3046f0','姓名4','男','13823888884','upload/yonghu_touxiang4.jpg'),(15,'2025-02-16 04:24:15','账号5','birdrecognition0:be266752de94f68f9940993591d3f2388b47c882dd6220593f2e27d6bb3046f0','姓名5','男','13823888885','upload/yonghu_touxiang5.jpg'),(16,'2025-02-16 04:24:15','账号6','birdrecognition0:be266752de94f68f9940993591d3f2388b47c882dd6220593f2e27d6bb3046f0','姓名6','男','13823888886','upload/yonghu_touxiang6.jpg'),(17,'2025-02-16 04:24:15','账号7','birdrecognition0:be266752de94f68f9940993591d3f2388b47c882dd6220593f2e27d6bb3046f0','姓名7','男','13823888887','upload/yonghu_touxiang7.jpg'),(18,'2025-02-16 04:24:15','账号8','birdrecognition0:be266752de94f68f9940993591d3f2388b47c882dd6220593f2e27d6bb3046f0','姓名8','男','13823888888','upload/yonghu_touxiang8.jpg');
 /*!40000 ALTER TABLE `yonghu` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;

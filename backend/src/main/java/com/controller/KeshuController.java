@@ -218,7 +218,19 @@ public class KeshuController {
     @RequestMapping("/bird_recognition")
     public R birdRecognition(HttpServletRequest request) throws IOException, InterruptedException {
         String wavFileName = request.getParameter("data");
-        File wavFile = new File(System.getProperty("user.dir") + File.separator + "upload" + File.separator + wavFileName);
+        // 路径穿越防护：文件名必须为纯文件名，且规范化后必须位于 upload 目录内
+        if (wavFileName == null || wavFileName.isEmpty()
+                || !wavFileName.matches("[A-Za-z0-9._\\-]{1,255}")) {
+            return R.error("音频文件名不合法");
+        }
+        File uploadDir = new File(System.getProperty("user.dir") + File.separator + "upload");
+        File wavFile = new File(uploadDir, wavFileName);
+        if (!wavFile.getCanonicalPath().startsWith(uploadDir.getCanonicalPath() + File.separator)) {
+            return R.error("音频文件名不合法");
+        }
+        if (!wavFile.exists()) {
+            return R.error("音频文件不存在");
+        }
 
         // AI 环境路径优先从环境变量读取；未配置时兼容从仓库根目录或 backend/ 目录启动。
         String aiDir = System.getenv("BIRD_AI_DIR");
