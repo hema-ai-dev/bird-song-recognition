@@ -9,7 +9,7 @@
 | `handle_wav.py` | 预处理：切分 wav → 生成 Mel 谱图（16 张补齐）到 `test_img/type/` |
 | `predict_with_torch.py` | 推理：加载 `models/checkpoint1.pth`，EfficientNet-B3 投票输出鸟种编码 |
 | `requirements.txt` | Python 依赖清单（torch/torchvision/efficientnet_pytorch/librosa/pydub/Pillow） |
-| `models/checkpoint1.pth` | 训练好的权重（131MB，100 类，**放 GitHub Releases 分发**） |
+| `models/checkpoint1.pth` | 训练好的权重（131MB，100 类，**GitHub Releases 分发**：[下载](https://github.com/hema-ai-dev/bird-song-recognition/releases/download/v1.0.0/checkpoint1.pth)） |
 | `python/` | 绿色免安装 Python 3.10 + torch cu121（Windows x64，随本机分发；不入 git） |
 | `ffmpeg/` | 音频切分依赖（pydub 调用；不入 git） |
 
@@ -29,7 +29,8 @@ python\python.exe predict_with_torch.py
 ```bash
 pip install -r requirements.txt        # torch 建议按官网选择 cuda 版本
 mkdir -p models
-# 下载权重（GitHub Releases）：checkpoint1.pth → models/
+# 下载权重（GitHub Releases）：
+curl -L -o models/checkpoint1.pth https://github.com/hema-ai-dev/bird-song-recognition/releases/download/v1.0.0/checkpoint1.pth
 export FFMPEG_PATH=/usr/bin/ffmpeg     # 或安装 ffmpeg 并加入 PATH
 python handle_wav.py 你的录音.wav
 python predict_with_torch.py

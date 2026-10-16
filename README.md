@@ -114,6 +114,12 @@ curl http://localhost:8080/springboot05qmpxx3/users/login?username=admin\&passwo
 - AI 识别（可选）：`ai/` 目录随仓库分发的绿色环境（Python 3.10 + torch cu121 + 模型 + ffmpeg），
   或自行安装依赖：`pip install -r ai/requirements.txt` 并把模型放到 `ai/models/checkpoint1.pth`
 
+模型权重下载（GitHub Releases）：
+
+```bash
+curl -L -o ai/models/checkpoint1.pth https://github.com/hema-ai-dev/bird-song-recognition/releases/download/v1.0.0/checkpoint1.pth
+```
+
 ### 1. 导入数据库
 
 ```bash
@@ -166,4 +172,10 @@ curl -X POST "http://localhost:8080/springboot05qmpxx3/keshu/bird_recognition?da
 
 `ai/` 目录中的识别脚本与训练流程，以及鸟鸣识别的端到端集成，为本项目的主要原创工作。界面模板、通用组件、图片、字体等第三方内容的权利归其各自权利人所有；本仓库不对来源未完全追溯的第三方部分主张独占权利。
 
-模型权重 `ai/models/checkpoint1.pth`（131MB）超过 GitHub 100MB 限制，需放在 Releases 中分发。
+## 模型权重
+
+权重文件不随仓库分发（超过 GitHub 100MB 限制），从 Releases 下载：
+
+```bash
+curl -L -o ai/models/checkpoint1.pth https://github.com/hema-ai-dev/bird-song-recognition/releases/download/v1.0.0/checkpoint1.pth
+```
