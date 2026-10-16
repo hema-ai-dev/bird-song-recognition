@@ -220,14 +220,20 @@ public class KeshuController {
         String wavFileName = request.getParameter("data");
         File wavFile = new File(System.getProperty("user.dir") + File.separator + "upload" + File.separator + wavFileName);
 
-        // AI环境路径从环境变量读取，未配置时回退到项目相对路径（ai/目录随仓库分发）
-        String python = System.getenv("BIRD_PYTHON");
-        if (python == null || python.isEmpty()) {
-            python = System.getProperty("user.dir") + File.separator + "ai" + File.separator + "python.exe";
-        }
+        // AI 环境路径优先从环境变量读取；未配置时兼容从仓库根目录或 backend/ 目录启动。
         String aiDir = System.getenv("BIRD_AI_DIR");
         if (aiDir == null || aiDir.isEmpty()) {
-            aiDir = System.getProperty("user.dir") + File.separator + "ai";
+            File workDir = new File(System.getProperty("user.dir"));
+            File aiHome = new File(workDir, "ai");
+            if (!aiHome.isDirectory() && workDir.getParentFile() != null) {
+                aiHome = new File(workDir.getParentFile(), "ai");
+            }
+            aiDir = aiHome.getCanonicalPath();
+        }
+
+        String python = System.getenv("BIRD_PYTHON");
+        if (python == null || python.isEmpty()) {
+            python = new File(new File(aiDir, "python"), "python.exe").getPath();
         }
 
         // 构建命令和参数
