@@ -78,7 +78,13 @@ def copy_files_to_reach_target_count(folder_path, target_count=16):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print('PREPROCESS_ERROR: 缺少 wav 文件路径参数', file=sys.stderr)
+        sys.exit(2)
     wav_file_path = sys.argv[1]
+    if not os.path.exists(wav_file_path):
+        print('PREPROCESS_ERROR: 音频文件不存在:', wav_file_path, file=sys.stderr)
+        sys.exit(2)
     test_voice_path = os.path.join(SCRIPT_DIR, 'test_voice', 'type')
     test_img_path = os.path.join(SCRIPT_DIR, 'test_img', 'type')
 
@@ -87,11 +93,15 @@ if __name__ == '__main__':
             shutil.rmtree(p)
         os.makedirs(p)
 
-    split_wav_file(wav_file_path, test_voice_path)
-    for wav_name in os.listdir(test_voice_path):
-        wav_full = os.path.join(test_voice_path, wav_name)
-        img_name = wav_name.partition('.')[0] + '.png'
-        convert_wav_mlpng(wav_full, os.path.join(test_img_path, img_name))
+    try:
+        split_wav_file(wav_file_path, test_voice_path)
+        for wav_name in os.listdir(test_voice_path):
+            wav_full = os.path.join(test_voice_path, wav_name)
+            img_name = wav_name.partition('.')[0] + '.png'
+            convert_wav_mlpng(wav_full, os.path.join(test_img_path, img_name))
+    except Exception as e:
+        print('PREPROCESS_ERROR:', repr(e), file=sys.stderr)
+        sys.exit(2)
 
     copy_files_to_reach_target_count(test_img_path)
     print('PREPROCESS_DONE', len(os.listdir(test_img_path)))

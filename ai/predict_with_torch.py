@@ -1,4 +1,5 @@
 import os
+import sys
 from efficientnet_pytorch import EfficientNet
 import torch
 from torchvision import transforms, datasets
@@ -19,17 +20,29 @@ transform = transforms.Compose([
     transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
 ])
 
-dataset_test = datasets.ImageFolder(root=IMG_DIR, transform=transform)
-test_loader = DataLoader(dataset=dataset_test, batch_size=16, shuffle=False, drop_last=True)
+if not os.path.isdir(IMG_DIR) or len(os.listdir(IMG_DIR)) == 0:
+    print('PREDICT_ERROR: 谱图目录不存在或为空:', IMG_DIR, file=sys.stderr)
+    sys.exit(2)
 
-model_ft = EfficientNet.from_name(bet_name)
-num_ftrs = model_ft._fc.in_features
-model_ft._fc = nn.Linear(num_ftrs, class_num)
+if not os.path.exists(CKPT_PATH):
+    print('PREDICT_ERROR: 模型权重不存在:', CKPT_PATH, file=sys.stderr)
+    sys.exit(2)
 
-checkpoint = torch.load(CKPT_PATH, map_location=device)
-model = model_ft.to(device)
-model.load_state_dict(checkpoint['state_dict'])
-model.eval()
+try:
+    dataset_test = datasets.ImageFolder(root=IMG_DIR, transform=transform)
+    test_loader = DataLoader(dataset=dataset_test, batch_size=16, shuffle=False, drop_last=False)
+
+    model_ft = EfficientNet.from_name(bet_name)
+    num_ftrs = model_ft._fc.in_features
+    model_ft._fc = nn.Linear(num_ftrs, class_num)
+
+    checkpoint = torch.load(CKPT_PATH, map_location=device)
+    model = model_ft.to(device)
+    model.load_state_dict(checkpoint['state_dict'])
+    model.eval()
+except Exception as e:
+    print('PREDICT_ERROR: 模型加载失败:', repr(e), file=sys.stderr)
+    sys.exit(2)
 
 test_answer_label = []
 test_answer_prob = []
@@ -77,5 +90,6 @@ for test_wav_name in account_dict:
 
 if not answer_list:
     print('PREDICT_EMPTY')
+    sys.exit(3)
 else:
     print(answer_list[0][1])

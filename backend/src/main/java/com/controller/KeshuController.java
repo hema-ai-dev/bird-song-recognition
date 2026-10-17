@@ -254,7 +254,14 @@ public class KeshuController {
         builder.redirectErrorStream(true); // 将错误输出和标准输出合并，便于读取
         Process process = builder.start();
         BufferedReader reader1 = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        process.waitFor(); // 等待第一个命令完成
+        int preExit = process.waitFor(); // 等待第一个命令完成
+        // 预处理失败：返回明确错误，不允许继续推理
+        if (preExit != 0) {
+            StringBuilder sb = new StringBuilder();
+            String l;
+            while ((l = reader1.readLine()) != null) sb.append(l).append('\n');
+            return R.error("音频预处理失败: " + sb.toString().trim());
+        }
 
         ProcessBuilder builder_predict = new ProcessBuilder(python,
                 aiDir + File.separator + "predict_with_torch.py"); // 确保替换为你的Python脚本路径和名称
@@ -264,14 +271,20 @@ public class KeshuController {
         // 读取输出
         BufferedReader reader = new BufferedReader(new InputStreamReader(process_predict.getInputStream()));
         String line;
-        String type_code = "B000";
+        String type_code = null;
         while ((line = reader.readLine()) != null) {
-            if (line.startsWith("B0")) {
-                type_code = line;
+            String t = line.trim();
+            if (t.matches("B0\\d{2}")) { // 只接受 B000-B099 合法编码
+                type_code = t;
             }
         }
+        int predictExit = process_predict.waitFor();
+        // 推理失败或未输出合法编码：返回明确错误，禁止静默回退到 B000
+        if (predictExit != 0 || type_code == null) {
+            return R.error("识别失败: 模型未能给出有效结果（exit=" + predictExit + "），请检查 AI 环境与模型权重");
+        }
 
-        String typeName = "旅鸫";
+        String typeName = null;
         if (type_code.equals("B000"))
             typeName = "旅鸫";
         else if (type_code.equals("B001"))
@@ -302,6 +315,11 @@ public class KeshuController {
             typeName = "普通鸬鹚";
         else if (type_code.equals("B014"))
             typeName = "雉鸡";
+
+        // 编码未在映射表中：返回明确错误，不允许静默回退到某一种鸟
+        if (typeName == null) {
+            return R.error("识别成功但编码 " + type_code + " 未在系统中维护鸟类信息，请联系管理员补充");
+        }
 
         // 等待进程结束
 //        int exitCode = process.waitFor();

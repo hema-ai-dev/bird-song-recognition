@@ -7,6 +7,8 @@ import time
 import os
 import copy
 import sys
+import random
+import numpy as np
 import tqdm
 
 # 设置超参数
@@ -29,27 +31,78 @@ transform = transforms.Compose([
     transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
 ])
 
+
+# 设置全局随机种子，保证分组/训练可复现
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+set_seed(42)
+
 # 构建dataset
-# 数据集路径优先命令行参数：python train_with_torch.py <谱图目录（ImageFolder结构）>
-# 默认取 prepare_image_from_wav_new_func.py 生成的 train_split_img_new_5s
+# 用法:
+#   python train_with_torch.py <谱图根目录>            # 根目录下含 train/ val/ 两个 ImageFolder 子目录（推荐）
+#   python train_with_torch.py --data <目录> --val <目录>   # 两个独立目录
+# 推荐用 split_wav_in_new_idea.py（默认按原始录音分组）切分后，
+# 再用 prepare_image_from_wav_new_func.py 分别对 train/ val/ 生成谱图。
+# 旧行为（train/val 读同一个目录，验证指标无意义）已移除。
+train_root = None
+val_root = None
 if len(sys.argv) > 1:
-    data_root = sys.argv[1]
+    train_root = sys.argv[1]
+    # 若根目录下存在 train/ val/ 子目录，自动使用分组结构
+    if os.path.isdir(os.path.join(train_root, 'train')) and os.path.isdir(os.path.join(train_root, 'val')):
+        val_root = os.path.join(train_root, 'val')
+        train_root = os.path.join(train_root, 'train')
 else:
-    data_root = os.path.join(SCRIPT_DIR, 'train_split_img_new_5s')
-print('数据目录:', data_root)
-dataset_train = datasets.ImageFolder(root=data_root, transform=transform)
-dataset_val = datasets.ImageFolder(root=data_root, transform=transform)
-# 对应文件夹的label
-# print(dataset_train.class_to_idx)
+    train_root = os.path.join(SCRIPT_DIR, 'train_split_img_new_5s', 'train')
+    val_root = os.path.join(SCRIPT_DIR, 'train_split_img_new_5s', 'val')
+
+# 允许显式 --data/--val 传参
+for arg in sys.argv[1:]:
+    if arg.startswith('--data='):
+        train_root = arg.split('=', 1)[1]
+    elif arg.startswith('--val='):
+        val_root = arg.split('=', 1)[1]
+
+if val_root is None:
+    print('错误: 未找到验证集。请使用按录音分组的目录结构 <root>/train、<root>/val，'
+          '或通过 --data=<训练目录> --val=<验证目录> 显式指定。')
+    print('训练集与验证集必须由不同原始录音的片段构成，读取同一目录不再被允许。')
+    sys.exit(1)
+
+print('训练谱图目录:', train_root)
+print('验证谱图目录:', val_root)
+if not os.path.isdir(train_root):
+    print('错误: 训练谱图目录不存在:', train_root)
+    sys.exit(1)
+if not os.path.isdir(val_root):
+    print('错误: 验证谱图目录不存在:', val_root)
+    sys.exit(1)
+
+dataset_train = datasets.ImageFolder(root=train_root, transform=transform)
+dataset_val = datasets.ImageFolder(root=val_root, transform=transform)
+
+# 类别映射一致性校验：train/val 的 class_to_idx 必须相同
+if dataset_train.class_to_idx != dataset_val.class_to_idx:
+    print('错误: 训练集与验证集的类别映射不一致:')
+    print('  train:', dataset_train.class_to_idx)
+    print('  val  :', dataset_val.class_to_idx)
+    sys.exit(1)
+
 # 训练样本数量
 dset_sizes = len(dataset_train)
 # 验证样本数量
 dset_sizes_val = len(dataset_val)
-# print("dset_sizes_val Length:", dset_sizes_val)
+print('训练样本数:', dset_sizes, '验证样本数:', dset_sizes_val)
 
 # 构建dataloader
 train_loader = DataLoader(dataset=dataset_train, batch_size=batch_size, shuffle=True, drop_last=True)
-val_loader = DataLoader(dataset_val, batch_size=batch_size, shuffle=True, drop_last=True)
+val_loader = DataLoader(dataset_val, batch_size=batch_size, shuffle=False, drop_last=False)
 dataloaders = {'train': train_loader, 'valid': val_loader}
 
 
@@ -135,8 +188,8 @@ def train_model(model_ft, criterion, optimizer, lr_scheduler):
             # 开始进入真实的取数据-训练 循环
             # 使用for循环 从 dataloader 中取数据，每次取出指定的一个 batch size
             for inputs, labels in tqdm.tqdm(dataloaders[phase]):
-                # tensor([76, 40, 77, 36, 85, 54, 11, 50, 88, 47, 40, 69, 26, 89, 53, 59, 74, 77,
-                #         94, 68, 38, 74, 77, 29, 18,  7, 33, 15, 25, 42, 32, 57])
+                # tensor([76, 40, 77, 36, 85, 54, 22, 68, 89, 76, 79, 77, 37, 80, 93, 87, 79, 61,
+                #         30, 57, 84, 27, 23, 31, 32, 22, 57, 77, 38, 43, 51, 23, 74, 23])
                 # print(labels)
 
                 # 将输入转到gpu中
@@ -153,8 +206,8 @@ def train_model(model_ft, criterion, optimizer, lr_scheduler):
 
                     # 对 outputs进行如下转换得到preds，才能和 labels的形式对应起来
                     _, preds = torch.max(outputs, 1)
-                    # tensor([17, 69, 97, 37,  6, 96, 64, 54, 41, 54, 90, 37,  7, 86, 12, 44, 76, 65,
-                    #         96, 30, 15, 89, 72, 40, 12,  3, 99, 78, 96,  7, 96, 47], device='cuda:0'))
+                    # tensor([17, 69, 97, 37,  6, 96, 43, 62, 38, 50, 31, 12, 27, 77, 43, 14, 28, 34,
+                    #         33, 87, 44, 78, 72, 37, 61, 34, 57, 70, 37, 44, 42, 19], device='cuda:0'))
                     # print(preds)
 
                     # 仅在训练阶段更新权重
@@ -200,7 +253,7 @@ def train_model(model_ft, criterion, optimizer, lr_scheduler):
 
         # 当每个 epoch 训练完成后，记录当前epoch 优化器的学习率
         print('Optimizer learning rate : {:.7f}'.format(optimizer.param_groups[0]['lr']))
-        LRs.append(optimizer.param_groups[0]['lr'])
+        LRs.append(optimizer.param_group[0]['lr'])
         print()
 
     # 当所有 epochs 训练完成后，打印训练花费的整体时间和 epoch最佳准确率
@@ -216,4 +269,3 @@ def train_model(model_ft, criterion, optimizer, lr_scheduler):
 
 train_model(model_ft, criterion, optimizer, exp_lr_scheduler)
 print('class_to_idx:', dataset_train.class_to_idx)
-
