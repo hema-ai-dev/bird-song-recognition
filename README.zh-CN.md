@@ -89,7 +89,7 @@ bird-song-recognition/
 
 ## 快速开始
 
-### 方式一：Docker 一键启动（推荐给评审者复现）
+### 方式一：Docker 一键启动
 
 ```bash
 # 1. 构建后端镜像（需本机有 Maven + JDK8，仅一次）
@@ -107,7 +107,7 @@ curl http://localhost:8080/springboot05qmpxx3/users/login?username=admin\&passwo
 
 > AI 识别在 Docker 内为可选：绿色 `ai/python` 是 Windows 版，容器内需按 [ai/README.md](ai/README.md) 在 Linux 镜像里自行安装依赖并挂载权重（`docker-compose.yml` 已预留 `- ./ai:/ai:ro` 挂载点）。不加挂载时除识别外的全部功能正常。
 
-### 方式二：本地启动（Windows，全功能含 AI 识别）
+### 方式二：本地启动
 
 ### 0. 环境要求
 

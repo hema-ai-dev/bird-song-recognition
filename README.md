@@ -89,7 +89,7 @@ bird-song-recognition/
 
 ## Quick start
 
-### Option 1: Docker one-command startup (recommended for reviewers)
+### Option 1: Docker one-command startup
 
 ```bash
 # 1. Build the backend image (requires Maven + JDK 8 locally; only once)
@@ -107,7 +107,7 @@ User app at <http://localhost:8080/springboot05qmpxx3/front/h5/index.html>
 
 > AI recognition inside Docker is optional: the bundled `ai/python` is Windows-only, so inside the container you need to install dependencies yourself in a Linux image as described in [ai/README.md](ai/README.md) and mount the weights (the `- ./ai:/ai:ro` mount point is already reserved in `docker-compose.yml`). Without the mount, all features except recognition work normally.
 
-### Option 2: Local startup (Windows, full features including AI recognition)
+### Option 2: Local startup
 
 ### 0. Requirements
 
